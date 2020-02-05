@@ -48,8 +48,10 @@ int CHA_curState;
 int encCOUNT = 0;
 
 /* Prototypes */
-void motorCCW(int NumStep);
-void motorCW(int NumStep);
+//void motorCCW(int NumStep, int NumSpeed);
+//void motorCW(int NumStep, int NumSpeed);
+void motorCCW(int NumSpeed);
+void motorCW(int NumSpeed);
 void attach_interrupt0(void);
 
 void setup() 
@@ -78,51 +80,79 @@ void setup()
   Serial.println(CHA_lastState);    
 }
 
-void motorCCW(int NumStep)
+//void motorCCW(int NumStep, int NumSpeed)
+void motorCCW(int NumSpeed)
 {
   //See Signal Descriptions Note
   digitalWrite( DIR, LOW );
-  delay(5);
+  delay(NumSpeed);
   digitalWrite( PLS, LOW );
-  delay(5);
+  delay(NumSpeed);
   digitalWrite( PLS, HIGH );
 }
 
-void motorCW(int NumStep)
+void motorCW(int NumSpeed)
 {
   //See Signal Descriptions Note
-      digitalWrite( DIR, HIGH );
-      delay(5);
-      digitalWrite( PLS, LOW );
-      delay(5);
-      digitalWrite( PLS, HIGH );
+  digitalWrite( DIR, HIGH );
+  delay(NumSpeed);
+  digitalWrite( PLS, LOW );
+  delay(NumSpeed);
+  digitalWrite( PLS, HIGH );
 
 }
 
 void loop() 
 {
+  
    digitalWrite( LED_BUILTIN, digitalRead(pushBTN) );
+   int someLoc = 1234;
    
    CHA_curState = digitalRead(encCHA);       //Read Current State of Encoder CHA
+
    
    if( digitalRead(pushBTN) == ACTIVE )
    {
       digitalWrite( StatusLED, INACTIVE );
-      
-      motorCW(1);    
-      //Serial.print("Motor Step ");
-      //Serial.println(i);
-      //i++;
 
+      while ( encCOUNT < someLoc)
+      {
+         motorCW(1);
+      }  
+
+      while (encCOUNT != someLoc)
+      {  
+        if (encCOUNT < someLoc)
+        {
+            Serial.println("Keep Going");            
+            motorCW(500);
+            delay(100);
+            
+           Serial.println(encCOUNT); 
+        }
+        if (encCOUNT > someLoc)
+        {
+            Serial.println("Too Far");
+            motorCCW(500);
+            delay(100);
+             
+          Serial.println(encCOUNT); 
+        }
+        delay(500);
+        
+        Serial.print(encCOUNT);
+        Serial.print(" vs ");
+        Serial.println(someLoc);
+      } 
    }
    else
    {
-      i = 0;
       digitalWrite( StatusLED, INACTIVE );   
+      encCOUNT = 0;
    }
 }
 
-
+/* On Encoder Change - Trigger interrupt and Update Counts */
 void attach_interrupt0()
 {
   digitalWrite( StatusLED, ACTIVE );
