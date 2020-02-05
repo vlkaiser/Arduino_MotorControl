@@ -36,9 +36,11 @@
 #define PLS         8     // Motor Driver Pulse+ Pin (PLS- = GND)
 #define DIR         9     // Motor Driver Direction+ Pin (DIR- = GND)
 
+int i = 0;
+
 /* Prototypes */
 void motorCW(void);
-
+void motorCCW(int NumStep);
 
 void setup() 
 {
@@ -64,11 +66,25 @@ void setup()
 
 void motorCW()
 {
+  //See Signal Descriptions Note
   digitalWrite( DIR, HIGH );
-  delay(10);
+  delay(5);
   digitalWrite( PLS, LOW );
-  delay(10);
+  delay(5);
   digitalWrite( PLS, HIGH );
+}
+
+void motorCCW(int NumStep)
+{
+  //See Signal Descriptions Note
+  for (int x = 0; x < NumStep; x++)
+  {
+    digitalWrite( DIR, LOW );
+    delay(5);
+    digitalWrite( PLS, LOW );
+    delay(5);
+    digitalWrite( PLS, HIGH );
+  }
 }
 
 void loop() 
@@ -78,13 +94,18 @@ void loop()
    if( digitalRead(pushBTN) == ACTIVE )
    {
       digitalWrite( StatusLED, ACTIVE );
-      motorCW();
+      //motorCW();    
+      //Serial.print("Motor Step ");
+      //Serial.println(i);
+      //i++;
+      motorCCW(500);
       
    }
    else
    {
+      i = 0;
       digitalWrite( StatusLED, INACTIVE );
-      digitalWrite( PLS, LOW );
+      digitalWrite( PLS, LOW ); 
       digitalWrite( DIR, LOW);
       
    }
