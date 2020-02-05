@@ -11,7 +11,7 @@
  *  Feb-05-2020 VK
  *********************************************************/
 
-/************** Signal Descriptions **********************
+/********************* Signal Descriptions ************************
  *  Motor Driver:
  *  When the PLS Input is turned from OFF to ON while DIR is ON
  *    Motor will rotate by one step CW
@@ -21,8 +21,14 @@
  *    DIR = LOW, PLS = LOW, PLS = HIGH -> CCW : 1 STEP
  *    
  *  MAX Input Pulse Frequency 50% duty cycle
- */
-
+ *  
+ *  Encoder:
+ *  We detect on the Rising/Falling edge of CH A
+ *  If CH A state = CH B state on the CH A edges: CCW Rotation
+ *      CH A = CH B: CCW Rotation
+ *  If CH A state and CH B States are 90* out-of-phase: CW Rotation
+ *      CH A != CH B: CW Rotation
+*******************************************************************/
 /* TypeDef */
 #define ACTIVE    HIGH       // Pushbutton Pressed (Normally Low), GPIO HIGH LED On
 #define INACTIVE  LOW    
@@ -37,10 +43,14 @@
 #define DIR         9     // Motor Driver Direction+ Pin (DIR- = GND)
 
 int i = 0;
+int CHA_lastState;
+int CHA_curState;
+int encCOUNT = 0;
 
 /* Prototypes */
-void motorCW(void);
 void motorCCW(int NumStep);
+void motorCW(int NumStep);
+void attach_interrupt0(void);
 
 void setup() 
 {
@@ -53,8 +63,8 @@ void setup()
 
   pinMode(encCHA, INPUT_PULLUP);
   pinMode(encCHB, INPUT_PULLUP);
-  //attachInterrupt(digitalPinToInterrupt(CHA), attach_interrupt0, CHANGE); // AttachInterrupt 0 is DigitalPin 2
-  //attachInterrupt(digitalPinToInterrupt(CHB), attach_interrupt1, CHANGE); // AttachInterrupt 1 is DigitalPin 3
+  attachInterrupt(digitalPinToInterrupt(encCHA), attach_interrupt0, CHANGE); // AttachInterrupt 0 is DigitalPin 2
+  //attachInterrupt(digitalPinToInterrupt(encCHB), attach_interrupt1, CHANGE); // AttachInterrupt 1 is DigitalPin 3
   
   Serial.begin(115200);
   while(!Serial) {}
@@ -62,51 +72,71 @@ void setup()
   Serial.println("Initializing...");
   digitalWrite( DIR, LOW );
   digitalWrite( PLS, LOW );
+
+  CHA_lastState = digitalRead(encCHA);    //Initial State of Encoder Channel A
+  Serial.print("Encoder A: ");
+  Serial.println(CHA_lastState);    
 }
 
-void motorCW()
+void motorCCW(int NumStep)
 {
   //See Signal Descriptions Note
-  digitalWrite( DIR, HIGH );
+  digitalWrite( DIR, LOW );
   delay(5);
   digitalWrite( PLS, LOW );
   delay(5);
   digitalWrite( PLS, HIGH );
 }
 
-void motorCCW(int NumStep)
+void motorCW(int NumStep)
 {
   //See Signal Descriptions Note
-  for (int x = 0; x < NumStep; x++)
-  {
-    digitalWrite( DIR, LOW );
-    delay(5);
-    digitalWrite( PLS, LOW );
-    delay(5);
-    digitalWrite( PLS, HIGH );
-  }
+      digitalWrite( DIR, HIGH );
+      delay(5);
+      digitalWrite( PLS, LOW );
+      delay(5);
+      digitalWrite( PLS, HIGH );
+
 }
 
 void loop() 
 {
    digitalWrite( LED_BUILTIN, digitalRead(pushBTN) );
-  
+   
+   CHA_curState = digitalRead(encCHA);       //Read Current State of Encoder CHA
+   
    if( digitalRead(pushBTN) == ACTIVE )
    {
-      digitalWrite( StatusLED, ACTIVE );
-      //motorCW();    
+      digitalWrite( StatusLED, INACTIVE );
+      
+      motorCW(1);    
       //Serial.print("Motor Step ");
       //Serial.println(i);
       //i++;
-      motorCCW(500);
-      
+
    }
    else
    {
       i = 0;
-      digitalWrite( StatusLED, INACTIVE );
-      digitalWrite( PLS, LOW ); 
-      digitalWrite( DIR, LOW);
-      
+      digitalWrite( StatusLED, INACTIVE );   
    }
 }
+
+
+void attach_interrupt0()
+{
+  digitalWrite( StatusLED, ACTIVE );
+  
+  if( digitalRead(encCHA) != digitalRead(encCHB) )
+  {
+    encCOUNT++;
+  }
+  else
+  {
+    encCOUNT--;  
+  }
+
+  Serial.print("Position: ");
+  Serial.println(encCOUNT);
+}
+  
